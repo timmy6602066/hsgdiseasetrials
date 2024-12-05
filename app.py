@@ -17,7 +17,7 @@ app.config['disease_name'] = None
 def index():
     return render_template('index.html')
 
-MONGO_URI = "mongodb://127.0.0.1:27017"
+MONGO_URI = "mongodb://47.109.42.124:27017"
 DATABASE_NAME = "patientDB"
 COLLECTION_NAME = "patientInfo"
 
