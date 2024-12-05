@@ -3,3 +3,4 @@ requests
 pymongo
 groq
 gunicorn>=20.0.0
+pandas
