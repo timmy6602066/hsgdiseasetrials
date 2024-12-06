@@ -72,8 +72,8 @@ def process_with_groq(input_text):
             {
                 "role": "system",
                 "content": (
-                    "Please explain the recommendation trial methods for patients first and then summarize the experimental report by sections. Use simple sentences and easy-to-understand language. "
-                    "(for people without a medical background). And bring more structures to the output (title for each section)"
+                   "Explain the recommendation trial method or conclusion for patients from this trial. Then summarize the treatment details, precautions, and other relevant information about this condition for the patient based on the experimental report. "
+                    "Use simple sentences and easy-to-understand language (for people without a medical background)."
                 ),
             },
             {
