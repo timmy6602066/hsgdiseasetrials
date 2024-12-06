@@ -72,8 +72,8 @@ def process_with_groq(input_text):
             {
                 "role": "system",
                 "content": (
-                    "Please summarize the treatment details, precautions, and other relevant information about this condition for the patient based on the experimental report. Use simple and easy-to-understand language. "
-                    "(for people without a medical background). And explain the clinical significance of this trial."
+                   "Please summarize the treatment details, precautions, and other relevant information about this condition for the patient based on the experimental report. Use simple and easy-to-understand language. "
+                    "(for people without a medical background). And explain the clinical significance of this trial. And bring more structures to the output"
                 ),
             },
             {
