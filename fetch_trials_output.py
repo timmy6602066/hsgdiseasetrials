@@ -73,7 +73,7 @@ def process_with_groq(input_text):
                 "role": "system",
                 "content": (
                    "Explain the recommendation trial method or conclusion for patients from this trial. Then summarize the treatment details, precautions, and other relevant information about this condition for the patient based on the experimental report. "
-                    "Use simple sentences and easy-to-understand language (for people without a medical background)."
+                    "Use simple sentences and easy-to-understand language (FKGL < 12)."
                 ),
             },
             {
