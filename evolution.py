@@ -144,3 +144,73 @@ if __name__ == "__main__":
     print("\nAverage Metrics Across All NCT IDs:")
     for metric, score in average_metrics.items():
         print(f"{metric}: {score:.4f}")
+
+
+# Evaluation Metrics for all NCT IDs:
+
+# NCT ID: NCT05105191
+# BERT Precision: 0.7486
+# BERT Recall: 0.8144
+# BERT F1: 0.7802
+# FKGL: 12.5000
+
+# NCT ID: NCT00782431
+# BERT Precision: 0.7686
+# BERT Recall: 0.8030
+# BERT F1: 0.7854
+# FKGL: 12.0000
+
+# NCT ID: NCT04059991
+# BERT Precision: 0.7546
+# BERT Recall: 0.8113
+# BERT F1: 0.7819
+# FKGL: 11.3000
+
+# NCT ID: NCT00556062
+# BERT Precision: 0.7320
+# BERT Recall: 0.8020
+# BERT F1: 0.7654
+# FKGL: 10.1000
+
+# NCT ID: NCT01622491
+# BERT Precision: 0.7735
+# BERT Recall: 0.8152
+# BERT F1: 0.7938
+# FKGL: 12.3000
+
+# NCT ID: NCT05371327
+# BERT Precision: 0.7583
+# BERT Recall: 0.8105
+# BERT F1: 0.7835
+# FKGL: 13.1000
+
+# NCT ID: NCT02482662
+# BERT Precision: 0.7563
+# BERT Recall: 0.8132
+# BERT F1: 0.7837
+# FKGL: 10.2000
+
+# NCT ID: NCT03841591
+# BERT Precision: 0.7720
+# BERT Recall: 0.8086
+# BERT F1: 0.7899
+# FKGL: 12.8000
+
+# NCT ID: NCT04738591
+# BERT Precision: 0.7492
+# BERT Recall: 0.8185
+# BERT F1: 0.7823
+# FKGL: 15.0000
+
+# NCT ID: NCT01545791
+# BERT Precision: 0.7391
+# BERT Recall: 0.8153
+# BERT F1: 0.7754
+# FKGL: 13.7000
+
+# Average Metrics Across All NCT IDs:
+# BERT Precision: 0.7552
+# BERT Recall: 0.8112
+# BERT F1: 0.7821
+# FKGL: 12.3000
+
