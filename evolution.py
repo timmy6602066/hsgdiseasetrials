@@ -6,10 +6,14 @@ import psycopg2
 from groq import Groq
 from bert_score import score
 from textstat import flesch_kincaid_grade
+import numpy as np
+from collections import Counter
 
+# Groq API Key
 GROQ_API_KEY = "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"
 client = Groq(api_key=GROQ_API_KEY)
 
+# Function to execute queries for a given NCT ID
 def execute_queries(nct_id):
     conn = psycopg2.connect(
         host="aact-db.ctti-clinicaltrials.org",
@@ -55,6 +59,7 @@ def execute_queries(nct_id):
 
     return "\n".join(combined_results)
 
+# Function to process the text using Groq
 def process_with_groq(input_text):
     lm = client.chat.completions.create(
         messages=[
@@ -75,39 +80,95 @@ def process_with_groq(input_text):
 
     return lm.choices[0].message.content
 
+# Function to evaluate text simplification metrics
 def evaluate_ts_metrics(input_text, output_text, reference_texts):
     """
     Evaluate Text Simplification metrics.
-    
+
     :param input_text: Original input text (combined_results).
     :param output_text: Simplified output text from the model.
     :param reference_texts: List of reference simplifications for comparison.
     :return: Dictionary with metric scores.
     """
 
+    # FKGL Score for Original Text
+    fkgl_original = flesch_kincaid_grade(input_text)
+
     # BERTScore
     bert_scores = score([output_text], [reference_texts[0]], lang="en")
     bert_precision, bert_recall, bert_f1 = bert_scores[0].mean().item(), bert_scores[1].mean().item(), bert_scores[2].mean().item()
 
-    # FKGL Score
-    fkgl = flesch_kincaid_grade(output_text)
+    # FKGL Score for Simplified Text
+    fkgl_simplified = flesch_kincaid_grade(output_text)
+
+    # SARI Score
+    sari_scores = sari_score([input_text], [output_text], reference_texts)
 
     # Compile results
     results = {
+        "Original FKGL": fkgl_original,
+        "Simplified FKGL": fkgl_simplified,
         "BERT Precision": bert_precision,
         "BERT Recall": bert_recall,
         "BERT F1": bert_f1,
-        "FKGL": fkgl
+        "SARI Preservation": sari_scores[0],
+        "SARI Insertion": sari_scores[1],
+        "SARI Deletion": sari_scores[2]
     }
     return results
 
+# SARI Score Calculation (simplified)
+def sari_score(orig_sentences, simplified_sentences, reference_sentences):
+    def _sari_for_sentence(orig, simpl, references):
+        preservation, insertion, deletion = 0, 0, 0
+        orig_words = set(orig.split())
+        simpl_words = set(simpl.split())
+        
+        # Calculate preservation, insertion, and deletion
+        for word in orig_words:
+            if word in simpl_words:
+                preservation += 1
+            else:
+                deletion += 1
+        
+        for word in simpl_words:
+            if word not in orig_words:
+                insertion += 1
+        
+        num_references = len(references)
+        reference_words = [set(ref.split()) for ref in references]
+        
+        # Calculate the preservation, insertion, and deletion ratios
+        preservation_ratio = preservation / max(len(orig_words), 1)
+        insertion_ratio = insertion / max(len(simpl_words), 1)
+        deletion_ratio = deletion / max(len(orig_words), 1)
+        
+        return preservation_ratio, insertion_ratio, deletion_ratio
+    
+    preservation_scores = []
+    insertion_scores = []
+    deletion_scores = []
+    
+    for orig, simpl, ref in zip(orig_sentences, simplified_sentences, reference_sentences):
+        preservation, insertion, deletion = _sari_for_sentence(orig, simpl, ref)
+        preservation_scores.append(preservation)
+        insertion_scores.append(insertion)
+        deletion_scores.append(deletion)
+    
+    # Average over all sentences
+    sari_score = np.mean(preservation_scores), np.mean(insertion_scores), np.mean(deletion_scores)
+    
+    return sari_score
+
+# Main function
 if __name__ == "__main__":
     # List of NCT IDs
     nct_ids = [
-        "NCT05105191", "NCT00782431","NCT05105191","NCT04059991","NCT00556062","NCT01622491","NCT05371327","NCT02482662","NCT03841591",
+        "NCT05105191", "NCT00782431", "NCT05105191", "NCT04059991", "NCT00556062",
+        "NCT01622491", "NCT05371327", "NCT02482662", "NCT03841591",
         "NCT04738591", "NCT04738591", "NCT01545791"
     ]
-    
+
     reference_texts = [
         "This is a sample simplified summary text for comparison purposes."
     ]
@@ -124,93 +185,44 @@ if __name__ == "__main__":
         else:
             print(f"No data found for NCT ID: {nct_id}")
 
-    # Calculate average metrics
-    total_nct = len(all_metrics)
-    average_metrics = {
-        "BERT Precision": sum(metrics["BERT Precision"] for metrics in all_metrics.values()) / total_nct,
-        "BERT Recall": sum(metrics["BERT Recall"] for metrics in all_metrics.values()) / total_nct,
-        "BERT F1": sum(metrics["BERT F1"] for metrics in all_metrics.values()) / total_nct,
-        "FKGL": sum(metrics["FKGL"] for metrics in all_metrics.values()) / total_nct,
-    }
-
     # Print Evaluation Metrics
     print("\nEvaluation Metrics for all NCT IDs:")
     for nct_id, metrics in all_metrics.items():
         print(f"\nNCT ID: {nct_id}")
         for metric, score in metrics.items():
             print(f"{metric}: {score:.4f}")
-    
+
+        # Print FKGL Difference
+        fkgl_diff = metrics["Original FKGL"] - metrics["Simplified FKGL"]
+        print(f"FKGL Difference (Original - Simplified): {fkgl_diff:.4f}")
+
+    # Calculate average metrics
+    total_nct = len(all_metrics)
+    average_metrics = {
+        "Original FKGL": sum(metrics["Original FKGL"] for metrics in all_metrics.values()) / total_nct,
+        "Simplified FKGL": sum(metrics["Simplified FKGL"] for metrics in all_metrics.values()) / total_nct,
+        "BERT Precision": sum(metrics["BERT Precision"] for metrics in all_metrics.values()) / total_nct,
+        "BERT Recall": sum(metrics["BERT Recall"] for metrics in all_metrics.values()) / total_nct,
+        "BERT F1": sum(metrics["BERT F1"] for metrics in all_metrics.values()) / total_nct,
+        "SARI Preservation": sum(metrics["SARI Preservation"] for metrics in all_metrics.values()) / total_nct,
+        "SARI Insertion": sum(metrics["SARI Insertion"] for metrics in all_metrics.values()) / total_nct,
+        "SARI Deletion": sum(metrics["SARI Deletion"] for metrics in all_metrics.values()) / total_nct,
+    }
+
     # Print Average Metrics
     print("\nAverage Metrics Across All NCT IDs:")
     for metric, score in average_metrics.items():
         print(f"{metric}: {score:.4f}")
 
 
-# Evaluation Metrics for all NCT IDs:
 
-# NCT ID: NCT05105191
-# BERT Precision: 0.7486
-# BERT Recall: 0.8144
-# BERT F1: 0.7802
-# FKGL: 12.5000
-
-# NCT ID: NCT00782431
-# BERT Precision: 0.7686
-# BERT Recall: 0.8030
-# BERT F1: 0.7854
-# FKGL: 12.0000
-
-# NCT ID: NCT04059991
-# BERT Precision: 0.7546
-# BERT Recall: 0.8113
-# BERT F1: 0.7819
-# FKGL: 11.3000
-
-# NCT ID: NCT00556062
-# BERT Precision: 0.7320
-# BERT Recall: 0.8020
-# BERT F1: 0.7654
-# FKGL: 10.1000
-
-# NCT ID: NCT01622491
-# BERT Precision: 0.7735
-# BERT Recall: 0.8152
-# BERT F1: 0.7938
-# FKGL: 12.3000
-
-# NCT ID: NCT05371327
-# BERT Precision: 0.7583
-# BERT Recall: 0.8105
-# BERT F1: 0.7835
-# FKGL: 13.1000
-
-# NCT ID: NCT02482662
-# BERT Precision: 0.7563
-# BERT Recall: 0.8132
-# BERT F1: 0.7837
-# FKGL: 10.2000
-
-# NCT ID: NCT03841591
-# BERT Precision: 0.7720
-# BERT Recall: 0.8086
-# BERT F1: 0.7899
-# FKGL: 12.8000
-
-# NCT ID: NCT04738591
-# BERT Precision: 0.7492
-# BERT Recall: 0.8185
-# BERT F1: 0.7823
-# FKGL: 15.0000
-
-# NCT ID: NCT01545791
-# BERT Precision: 0.7391
-# BERT Recall: 0.8153
-# BERT F1: 0.7754
-# FKGL: 13.7000
-
-# Average Metrics Across All NCT IDs:
-# BERT Precision: 0.7552
-# BERT Recall: 0.8112
-# BERT F1: 0.7821
-# FKGL: 12.3000
+#Average Metrics Across All NCT IDs:
+#Original FKGL: 15.9800
+#Simplified FKGL: 12.4100
+#BERT Precision: 0.7620
+#BERT Recall: 0.8153
+#BERT F1: 0.7877
+#SARI Preservation: 0.1770
+#SARI Insertion: 0.5468
+#SARI Deletion: 0.8230
 
