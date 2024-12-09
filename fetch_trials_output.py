@@ -81,7 +81,7 @@ def process_with_groq(input_text):
                 "content": input_text,
             }
         ],
-        model="llama-3.1-70b-versatile",
+        model="llama-3.3-70b-versatile",
     )
 
 
